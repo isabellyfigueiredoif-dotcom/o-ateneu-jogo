@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>O Ateneu — A Jornada pelo Internato</title>
+<meta name="theme-color" content="#211914">
+<style>
+:root{--bg:#17120f;--panel:#241b16;--panel2:#30241c;--gold:#d5ad68;--cream:#f3e8d4;--muted:#bcae9b;--red:#a64f43;--green:#66866b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#493526 0,#211914 42%,#120e0b 100%);color:var(--cream);font-family:Georgia,serif;min-height:100vh}
+header{padding:26px 16px 18px;text-align:center;border-bottom:1px solid #6f5437}
+.eyebrow{color:var(--gold);letter-spacing:4px;text-transform:uppercase;font:11px Arial,sans-serif}
+h1{font-size:clamp(27px,5vw,44px);margin:9px 0 5px;font-weight:500;letter-spacing:1px}
+.subtitle{color:var(--muted);font-style:italic}
+main{max-width:850px;margin:24px auto;padding:0 15px 40px}
+.panel{background:linear-gradient(145deg,#30241c,#211914);border:1px solid #725738;border-radius:14px;padding:22px;margin:15px 0;box-shadow:0 12px 30px #0005}
+h2{margin:0 0 15px;color:var(--gold);font-size:23px;font-weight:500}
+h3{color:var(--gold);font-weight:500}
+p{line-height:1.5}.muted{color:var(--muted)}label{display:block;margin:12px 0 6px;color:var(--muted);font:13px Arial,sans-serif}
+input,select{width:100%;padding:13px;border-radius:8px;border:1px solid #806544;background:#160f0b;color:var(--cream);font-size:16px}
+button{border:1px solid var(--gold);border-radius:8px;background:var(--gold);color:#211914;font-weight:bold;padding:12px 17px;font-size:15px;cursor:pointer;margin:6px 5px 0 0}
+button.secondary{background:transparent;color:var(--gold)}button.danger{background:var(--red);border-color:var(--red);color:white}button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}
+.hidden{display:none!important}.code{font:700 32px Arial,sans-serif;letter-spacing:7px;color:var(--gold);text-align:center;padding:12px}
+.option{display:block;width:100%;text-align:left;background:#392b21;color:var(--cream);border:1px solid #806544;margin:9px 0;padding:15px;font-weight:normal}
+.option.selected{outline:2px solid var(--gold);background:#4b3828}
+.option:disabled{opacity:.8}.status{padding:10px;border-radius:8px;background:#17120f;color:var(--muted);margin:12px 0}
+.pill{display:inline-block;border:1px solid #806544;border-radius:30px;padding:5px 10px;color:var(--gold);font:12px Arial,sans-serif}
+table{width:100%;border-collapse:collapse;margin-top:10px}td,th{text-align:left;padding:10px;border-bottom:1px solid #59432e}th{color:var(--gold);font-weight:normal}
+footer{text-align:center;color:#8f806e;font:12px Arial,sans-serif;padding:15px}
+#notice{position:sticky;top:0;z-index:5;background:#5a3825;color:white;padding:10px;text-align:center;display:none}
+</style>
+</head>
+<body>
+<div id="notice"></div>
+<header><div class="eyebrow">Uma experiência literária</div><h1>O Ateneu</h1><div class="subtitle">A Jornada pelo Internato</div></header>
+<main>
+<section id="home" class="panel">
+<h2>Bem-vindo ao Ateneu</h2>
+<p>Entre no internato, enfrente os desafios literários e conquiste seu lugar entre os finalistas.</p>
+<div class="row"><button onclick="show('hostSetup')">Criar sala — apresentador</button><button class="secondary" onclick="show('joinSetup')">Entrar na sala — participante</button></div>
+</section>
+
+<section id="hostSetup" class="panel hidden">
+<h2>Preparar a competição</h2>
+<label>Nome do apresentador</label><input id="hostName" maxlength="35" placeholder="Seu nome">
+<p class="muted">A sala terá quatro etapas eliminatórias. Os participantes entram pelo próprio celular com o código exibido.</p>
+<button onclick="createRoom()">Criar sala</button><button class="secondary" onclick="show('home')">Voltar</button>
+</section>
+
+<section id="joinSetup" class="panel hidden">
+<h2>Entrar no internato</h2>
+<label>Código da sala</label><input id="joinCode" maxlength="6" placeholder="Ex.: 482193" inputmode="numeric">
+<label>Seu nome</label><input id="playerName" maxlength="35" placeholder="Nome e sobrenome">
+<button onclick="joinRoom()">Entrar</button><button class="secondary" onclick="show('home')">Voltar</button>
+</section>
+
+<section id="hostView" class="hidden">
+<div class="panel">
+<div class="pill">PAINEL DO APRESENTADOR</div><h2>Sua sala está aberta</h2>
+<div class="code" id="roomCode"></div><p class="muted" style="text-align:center">Compartilhe o código com a turma. Cada pessoa entra pelo próprio aparelho.</p>
+<div class="status" id="hostStatus">Aguardando participantes...</div>
+<div class="row"><button id="startBtn" onclick="startStage()">Iniciar etapa 1</button><button class="secondary" onclick="refreshHost()">Atualizar painel</button></div>
+</div>
+<div class="panel"><h2>Participantes e classificação</h2><div id="hostPlayers"></div></div>
+<div class="panel hidden" id="hostQuestionPanel"><h2>Etapa em andamento</h2><div id="hostQuestionInfo"></div><button onclick="finishStage()">Encerrar etapa e classificar</button></div>
+</section>
+
+<section id="playerView" class="hidden">
+<div class="panel">
+<div class="pill">PARTICIPANTE</div><h2 id="playerGreeting"></h2>
+<div class="status" id="playerStatus">Aguardando o apresentador iniciar...</div>
+<div id="questionArea"></div>
+</div>
+<div class="panel"><h2>Minha pontuação</h2><div class="code" id="myScore">0</div><p class="muted" id="playerRank"></p></div>
+</section>
+
+<section id="finalView" class="panel hidden">
+<h2>O último capítulo</h2><p>As três pessoas finalistas participam de uma pergunta oral ou discursiva. O apresentador avalia as respostas e anuncia o vencedor.</p>
+<div id="finalists"></div>
+</section>
+</main>
+<footer>O Ateneu • Projeto de gamificação literária</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, onSnapshot, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 1) Cole aqui as configurações do seu projeto Firebase.
+const firebaseConfig = {
+  apiKey: "COLE_SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+
+const questionSets = [
+[
+{q:"Quem é o autor de O Ateneu?",a:["Aluísio Azevedo","Raul Pompeia","Machado de Assis","José de Alencar"],c:1,e:"O Ateneu foi escrito por Raul Pompeia e publicado em 1888."},
+{q:"Quem narra a história?",a:["Aristarco","Sérgio adulto, relembrando a infância","Bento Alves","Um narrador onisciente em terceira pessoa"],c:1,e:"A narrativa é feita em primeira pessoa, como memória de Sérgio adulto."},
+{q:"Qual é o espaço central da narrativa?",a:["Uma fazenda","Um quartel","O internato Ateneu","Uma universidade"],c:2,e:"O internato é o espaço que organiza as experiências e conflitos da obra."},
+{q:"A obra O Ateneu foi publicada em qual ano?",a:["1822","1888","1899","1922"],c:1,e:"A publicação ocorreu em 1888, no final do século XIX."},
+{q:"A obra é geralmente associada a qual movimento literário?",a:["Arcadismo","Quinhentismo","Realismo/Naturalismo","Modernismo"],c:2,e:"A obra apresenta crítica social e observação psicológica, associadas ao Realismo."},
+{q:"Quem é Sérgio?",a:["O diretor do colégio","O protagonista e narrador","O professor de desenho","O pai de Aristarco"],c:1,e:"Sérgio é o personagem central, cuja experiência no internato é narrada."}
+],
+[
+{q:"Quem é Aristarco?",a:["O pai de Sérgio","O diretor do Ateneu","Um aluno novato","Um funcionário da cozinha"],c:1,e:"Aristarco dirige o internato e representa sua autoridade."},
+{q:"Como o Ateneu é apresentado ao leitor?",a:["Como espaço sem conflitos","Como ambiente ideal e perfeito","Como instituição marcada por hierarquia e disputas","Como uma escola rural vazia"],c:2,e:"O internato revela relações de poder, competição e conflitos."},
+{q:"Qual é o efeito da narração em primeira pessoa?",a:["Apresenta apenas documentos oficiais","Mostra as lembranças e percepções de Sérgio","Elimina a subjetividade","Torna a história uma peça teatral"],c:1,e:"O leitor acompanha os acontecimentos filtrados pela memória e visão do narrador."},
+{q:"A relação entre os alunos é marcada principalmente por:",a:["Igualdade absoluta","Competição, alianças e conflitos","Ausência de convivência","Apenas cooperação"],c:1,e:"As relações entre estudantes envolvem disputas, amizades e hierarquias."},
+{q:"O internato funciona na obra como:",a:["Um microcosmo da sociedade","Um lugar sem regras","Um cenário fantástico","Uma representação do campo"],c:0,e:"O colégio reproduz estruturas de poder e comportamentos sociais."},
+{q:"A memória de Sérgio é:",a:["Totalmente neutra","Subjetiva e marcada pela experiência","Narrada por Aristarco","Limitada a cartas"],c:1,e:"O relato é retrospectivo e subjetivo."}
+],
+[
+{q:"Qual aspecto da sociedade é criticado na obra?",a:["A vida marítima","O autoritarismo e as aparências sociais","A industrialização inglesa","A mitologia grega"],c:1,e:"A obra questiona autoridade, prestígio, hipocrisia e relações de poder."},
+{q:"A figura de Aristarco pode ser interpretada como símbolo de:",a:["Liberdade irrestrita","Autoridade e poder institucional","Rebeldia estudantil","Vida familiar"],c:1,e:"Aristarco concentra o poder e a imagem pública do estabelecimento."},
+{q:"O subtítulo frequentemente associado à obra é:",a:["Memórias de um sargento de milícias","Crônica de saudades","O cortiço","A cidade e as serras"],c:1,e:"O Ateneu é conhecido pelo subtítulo Crônica de saudades."},
+{q:"O tom memorialístico significa que:",a:["Os fatos são apresentados como lembranças","A narrativa é um manual escolar","O texto é uma notícia","A história não tem narrador"],c:0,e:"A narrativa reconstrói experiências passadas a partir da memória."},
+{q:"A linguagem da obra se destaca por:",a:["Ser exclusivamente coloquial","Descrições elaboradas e imagens expressivas","Ser um roteiro de cinema","Não apresentar descrições"],c:1,e:"Raul Pompeia emprega linguagem elaborada, com descrições e recursos expressivos."},
+{q:"O Ateneu permite discutir principalmente:",a:["A formação do indivíduo em um ambiente social","A exploração espacial","A vida dos povos antigos","A tecnologia digital"],c:0,e:"A experiência de Sérgio revela conflitos da formação individual e social."}
+],
+[
+{q:"Qual alternativa melhor resume a crítica presente em O Ateneu?",a:["O internato é um modelo perfeito","A instituição revela contradições entre discurso e prática","Todos os alunos têm experiências iguais","A obra defende obediência sem questionamento"],c:1,e:"A obra expõe as contradições de uma instituição que prega valores, mas reproduz disputas e abusos de poder."},
+{q:"Por que a perspectiva de Sérgio é importante?",a:["Porque oferece uma visão pessoal e retrospectiva","Porque elimina a interpretação do leitor","Porque conta a história de Aristarco","Porque transforma o romance em biografia oficial"],c:0,e:"A memória de Sérgio orienta a seleção e a interpretação dos acontecimentos."},
+{q:"O espaço escolar pode ser lido como representação:",a:["De uma sociedade em miniatura","De um mundo sem relações sociais","De um cenário mitológico","De uma paisagem natural"],c:0,e:"As relações do internato refletem estruturas sociais mais amplas."},
+{q:"A crítica à educação no romance está ligada:",a:["À ausência de qualquer instituição","Ao contraste entre ideal educativo e realidade autoritária","À defesa de punições severas","À rejeição de todo conhecimento"],c:1,e:"A obra questiona o modelo educacional e a autoridade exercida no internato."},
+{q:"A expressão 'crônica de saudades' reforça:",a:["A lembrança do passado narrado","Uma previsão do futuro","Uma reportagem policial","Um texto científico"],c:0,e:"O subtítulo destaca o caráter de recordação da narrativa."},
+{q:"Uma leitura crítica de O Ateneu deve considerar:",a:["Somente o enredo","Narrador, espaço, personagens e crítica social","Apenas a biografia do autor","Somente o número de capítulos"],c:1,e:"A interpretação literária articula forma narrativa, personagens, espaço e contexto."}
+]
+];
+
+let app,auth,db,uid,roomCode,roomUnsub,playersUnsub,myPlayerId,role;
+const $=id=>document.getElementById(id);
+function show(id){["home","hostSetup","joinSetup","hostView","playerView","finalView"].forEach(x=>$(x).classList.add("hidden"));$(id).classList.remove("hidden")}
+function note(msg){$("notice").textContent=msg;$("notice").style.display="block";setTimeout(()=>$("notice").style.display="none",4500)}
+try{
+ if(firebaseConfig.apiKey.startsWith("COLE_")) throw new Error("CONFIG");
+ app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
+ const credential = await signInAnonymously(auth);
+ uid = credential.user.uid;
+ onAuthStateChanged(auth,u=>{if(u)uid=u.uid});
+}catch(e){note(e.message==="CONFIG"?"Configure o Firebase no arquivo antes de publicar. Veja o LEIA-ME.":"Não foi possível conectar ao Firebase. Confira a configuração e a internet.");}
+window.show=show;
+window.createRoom=async()=>{
+ if(!db||!uid)return note("O Firebase ainda não está configurado.");
+ const host=$("hostName").value.trim();if(!host)return note("Digite seu nome.");
+ roomCode=String(Math.floor(100000+Math.random()*900000));
+ const room={code:roomCode,hostUid:uid,hostName:host,status:"waiting",stage:0,questionIndex:0,question:null,createdAt:serverTimestamp()};
+ try{await setDoc(doc(db,"rooms",roomCode),room);role="host";$("roomCode").textContent=roomCode;show("hostView");listenRoom();listenPlayers();}
+ catch(e){note("Erro ao criar sala: "+e.message)}
+};
+window.joinRoom=async()=>{
+ if(!db||!uid)return note("O Firebase ainda não está configurado.");
+ const code=$("joinCode").value.trim(),name=$("playerName").value.trim();
+ if(!/^\d{6}$/.test(code)||!name)return note("Informe o código de 6 números e seu nome.");
+ try{
+  const ref=doc(db,"rooms",code),snap=await getDoc(ref);if(!snap.exists())return note("Sala não encontrada.");
+  if(snap.data().status==="finished")return note("Esta sala já foi encerrada.");
+  roomCode=code;myPlayerId=uid;role="player";
+  await setDoc(doc(db,"rooms",code,"players",uid),{uid,name,score:0,stageScore:0,answered:false,eliminated:false,joinedAt:serverTimestamp()});
+  $("playerGreeting").textContent="Bem-vindo(a), "+name+"!";show("playerView");listenRoom();listenMyPlayer();
+ }catch(e){note("Não foi possível entrar: "+e.message)}
+};
+function listenRoom(){
+ if(roomUnsub)roomUnsub();
+ roomUnsub=onSnapshot(doc(db,"rooms",roomCode),snap=>{
+  if(!snap.exists())return;
+  const r=snap.data();
+  if(role==="host"){
+   $("hostStatus").textContent=r.status==="waiting"?"Aguardando participantes.":r.status==="playing"?"Etapa "+(r.stage+1)+" em andamento.":"Competição encerrada.";
+   $("startBtn").disabled=r.status==="playing"||r.status==="finished";
+   $("startBtn").textContent=r.status==="waiting"?"Iniciar etapa 1":"Iniciar próxima etapa";
+   $("hostQuestionPanel").classList.toggle("hidden",r.status!=="playing");
+   $("hostQuestionInfo").textContent=r.question?("Etapa "+(r.stage+1)+" • "+r.question.q):"";
+   if(r.status==="finished")showFinal();
+  }else if(role==="player"){
+   renderPlayerQuestion(r);
+  }
+ });
+}
+function listenPlayers(){
+ if(playersUnsub)playersUnsub();
+ playersUnsub=onSnapshot(collection(db,"rooms",roomCode,"players"),snap=>{
+  const arr=snap.docs.map(d=>d.data()).sort((a,b)=>b.score-a.score);
+  $("hostPlayers").innerHTML=arr.length?`<table><tr><th>Participante</th><th>Pontos</th><th>Situação</th></tr>${arr.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.score||0}</td><td>${p.eliminated?"Eliminado":p.answered?"Respondeu":"Aguardando"}</td></tr>`).join("")}</table>`:"<p class='muted'>Ninguém entrou ainda.</p>";
+ });
+}
+function listenMyPlayer(){
+ if(playersUnsub)playersUnsub();
+ playersUnsub=onSnapshot(doc(db,"rooms",roomCode,"players",myPlayerId),snap=>{
+  if(!snap.exists())return;const p=snap.data();$("myScore").textContent=p.score||0;
+  $("playerRank").textContent=p.eliminated?"Você não avançou para a próxima etapa.":p.answered?"Resposta registrada. Aguarde a próxima etapa.":"";
+ });
+}
+function renderPlayerQuestion(r){
+ const area=$("questionArea");
+ if(r.status==="waiting"){ $("playerStatus").textContent="Aguardando o apresentador iniciar a próxima etapa.";area.innerHTML="";return;}
+ if(r.status==="finished"){ $("playerStatus").textContent="Competição encerrada.";area.innerHTML="";return;}
+ $("playerStatus").textContent="Etapa "+(r.stage+1)+" de 4";
+ getDoc(doc(db,"rooms",roomCode,"players",myPlayerId)).then(s=>{
+  if(!s.exists())return;const p=s.data();
+  if(p.eliminated){area.innerHTML="<p>Esta etapa terminou para você. Acompanhe a classificação com a turma.</p>";return;}
+  if(p.answered){area.innerHTML="<p class='status'>Resposta enviada! Aguarde o encerramento da etapa.</p>";return;}
+  const q=r.question;if(!q)return;
+  area.innerHTML=`<h3>${esc(q.q)}</h3>${q.a.map((a,i)=>`<button class="option" onclick="answer(${i})">${String.fromCharCode(65+i)}) ${esc(a)}</button>`).join("")}<p class="muted">Você tem uma tentativa nesta etapa.</p>`;
+ });
+}
+window.answer=async(index)=>{
+ try{
+  const ref=doc(db,"rooms",roomCode,"players",myPlayerId),snap=await getDoc(ref),rs=await getDoc(doc(db,"rooms",roomCode));
+  if(!snap.exists()||!rs.exists())return;
+  const p=snap.data(),r=rs.data();if(p.answered||p.eliminated||r.status!=="playing")return;
+  const correct=index===r.question.c,earned=correct?10:0;
+  await updateDoc(ref,{answered:true,lastAnswer:index,lastCorrect:correct,stageScore:earned,score:(p.score||0)+earned});
+  $("questionArea").innerHTML=`<div class="status">${correct?"Resposta correta! +10 pontos.":"Resposta incorreta. 0 pontos."}<br>${esc(r.question.e)}</div>`;
+ }catch(e){note("Erro ao enviar resposta: "+e.message)}
+};
+window.startStage=async()=>{
+ const snap=await getDocs(collection(db,"rooms",roomCode,"players"));const arr=snap.docs.map(d=>d.data()).filter(p=>!p.eliminated);
+ if(arr.length<2)return note("É preciso ter pelo menos 2 participantes.");
+ const roomSnap=await getDoc(doc(db,"rooms",roomCode));const old=roomSnap.data();if(old.stage>=4)return;
+ const stage=old.stage===0?0:old.stage;
+ const q=questionSets[stage][Math.floor(Math.random()*questionSets[stage].length)];
+ for(const d of snap.docs){const p=d.data();if(!p.eliminated)await updateDoc(d.ref,{answered:false,stageScore:0,lastAnswer:null,lastCorrect:null});}
+ await updateDoc(doc(db,"rooms",roomCode),{status:"playing",stage,question:q});
+};
+window.finishStage=async()=>{
+ const roomSnap=await getDoc(doc(db,"rooms",roomCode));const r=roomSnap.data();
+ const snap=await getDocs(collection(db,"rooms",roomCode,"players"));
+ let arr=snap.docs.map(d=>({ref:d.ref,...d.data()})).filter(p=>!p.eliminated);
+ arr.sort((a,b)=>(b.score||0)-(a.score||0));
+ // Reduz o grupo progressivamente, preservando pelo menos três quando houver participantes suficientes.
+ const fractions=[0.67,0.5,0.34,1];
+ const keep=Math.min(arr.length,Math.max(Math.min(3,arr.length),Math.ceil(arr.length*fractions[r.stage])));
+ const advancing=new Set(arr.slice(0,keep).map(p=>p.uid));
+ for(const p of arr)await updateDoc(p.ref,{eliminated:!advancing.has(p.uid),answered:true});
+ if(r.stage===3){
+  await updateDoc(doc(db,"rooms",roomCode),{status:"finished"});
+  showFinal();
+ }else{
+  await updateDoc(doc(db,"rooms",roomCode),{status:"waiting",stage:r.stage+1,question:null});
+  $("hostStatus").textContent=`Etapa ${r.stage+1} encerrada. ${keep} participante(s) avançaram.`;
+  $("startBtn").disabled=false;$("startBtn").textContent="Iniciar etapa "+(r.stage+2);
+ }
+};
+async function showFinal(){
+ const snap=await getDocs(collection(db,"rooms",roomCode,"players"));
+ const arr=snap.docs.map(d=>d.data()).filter(p=>!p.eliminated).sort((a,b)=>b.score-a.score).slice(0,3);
+ $("finalists").innerHTML="<h3>Finalistas</h3><ol>"+arr.map(p=>`<li>${esc(p.name)} — ${p.score||0} pontos</li>`).join("")+"</ol><p class='muted'>Pergunta oral sugerida: De que maneira o internato do Ateneu representa as relações de poder presentes na sociedade? Justifique com elementos da obra.</p>";
+ if(role==="host")show("finalView");
+}
+window.refreshHost=()=>{note("O painel é atualizado automaticamente quando alguém entra ou responde.");};
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+</script>
+</body></html>
